@@ -1,0 +1,6 @@
+(ns quil-workflow.dynamic
+  (:use quil.core))
+
+(defn setup []
+      (smooth)
+      
