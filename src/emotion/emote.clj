@@ -19,7 +19,7 @@
 (defrecord link
     [strength, begin, end])
 
-(def node-list [(node. (random 500) 50) (node. 50 400)])
+(def node-list [(node. 500 50) (node. 50 400)])
 
 ;;; Drawing Commands
 
@@ -99,7 +99,7 @@
   )
 
 (defn setup []
-  (smooth 8)
+  (smooth)
   (frame-rate 30)
   (background 255)
   )
@@ -116,8 +116,8 @@
     (draw-node-link x y 500 500 (abs tim) (lerp-color (color 200) per-color (abs tim)))
     (draw-inter-link x y 0 0 (abs tim))
     ;;(dorun (map (draw-node-dot 50 5 node-list))
-    (dorun (map #(draw-node-dot (:pos-x %) (:pos-y %) size per-color) node-list))
-    (random 50)
+    ;;(dorun (map #(draw-node-dot (:pos-x %) (:pos-y %) size per-color) node-list))
+    ;;(random 50)
     
     (draw-node-dot x y size (lerp-color per-color (color 255) 0.0))
     (draw-node-text x y size (str (abs tim)))

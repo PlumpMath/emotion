@@ -13,7 +13,8 @@
   :title "What do you want?"
   :setup emote/setup
   :draw emote/draw
-  :size [800 600])
+  :size [800 600]
+  :renderer :java2d)
 
 (defn foo
   "I don't do a whole lot."
