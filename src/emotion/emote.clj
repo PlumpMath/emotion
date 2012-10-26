@@ -14,12 +14,14 @@
 ;; list of links
 
 (defrecord node
-    [pos-x, pos-y])
+    [label, pos-x, pos-y])
 
 (defrecord link
     [strength, begin, end])
 
-(def node-list [(node. 500 50) (node. 50 400)])
+(def node-list [(node. "Hope" 500 50) (node. "Fear" 50 400) (node. "Vegetables" 345 234)])
+
+(def link-list [(link. 0.1 (first node-list) (second node-list))])
 
 ;;; Drawing Commands
 
@@ -81,7 +83,7 @@
      (line x1 y1 x2 y2))
   ([x1 y1 x2 y2 strength per-color]
      (stroke-weight (+ 5 (* strength 2)))
-     (stroke per-color) 
+     (stroke (lerp-color per-color (color 20 20 20) (abs strength)))
      (line x1 y1 x2 y2))
   )
 
@@ -104,6 +106,15 @@
   (background 255)
   )
 
+;; colors
+;;213 62 79
+;;252 141 89
+;;254 224 139
+;;255 255 191
+;;230 245 152
+;;153 213 148
+;;50 136 189
+
 (defn draw []
   (background 240)
   (let [tim (Math/sin (/ (millis) 1000))
@@ -112,11 +123,19 @@
         size 15
         atext "Node Name"
         strg tim
-        per-color (color 210 170 150)]
+        per-color (color 213 62 79)]
     (draw-node-link x y 500 500 (abs tim) (lerp-color (color 200) per-color (abs tim)))
     (draw-inter-link x y 0 0 (abs tim))
     ;;(dorun (map (draw-node-dot 50 5 node-list))
-    ;;(dorun (map #(draw-node-dot (:pos-x %) (:pos-y %) size per-color) node-list))
+    (dorun (map #(draw-node-link
+                  (:pos-x (:begin %)) (:pos-y (:begin %))
+                  (:pos-x (:end %)) (:pos-y (:end %))
+                  (:strength %)
+                  per-color)
+                link-list))
+    (dorun (map #(draw-node-dot (:pos-x %) (:pos-y %) size per-color) node-list))
+    (dorun (map #(draw-node-text (:pos-x %) (:pos-y %) size (:label %)) node-list))
+
     ;;(random 50)
     
     (draw-node-dot x y size (lerp-color per-color (color 255) 0.0))
