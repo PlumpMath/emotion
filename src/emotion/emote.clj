@@ -14,14 +14,34 @@
 ;; list of links
 
 (defrecord node
-    [label, pos-x, pos-y])
+    [label, position])
 
 (defrecord link
     [strength, begin, end])
 
-(def node-list [(node. "Hope" 500 50) (node. "Fear" 50 400) (node. "Vegetables" 345 234)])
+(def node-list [(node. "Hope" {:x 500 :y 50}) (node. "Fear" {:x 50 :y 400}) (node. "Vegetables" {:x 345 :y 234})])
 
 (def link-list [(link. 0.1 (first node-list) (second node-list))])
+
+(defn update-node [the-node]
+  )
+
+(defn node-apply-force [the-node force-vec]
+  )
+
+;;; interface
+(defn find-closest-node
+  "From the list of nodes, find the closest one to the given location."
+  ([x-pos y-pos nodes]
+;;     (sort-by :pos-x nodes))
+     (first
+      (sort-by #(dist x-pos y-pos (:x (:position %1)) (:y (:position %1)))
+              ;;(dist x-pos y-pos (:pos-x %2) (:pos-y %2)))
+       nodes))
+     ))
+
+(defn find-closest-link [x-pos y-pos links]
+  )
 
 ;;; Drawing Commands
 
@@ -118,8 +138,8 @@
 (defn draw []
   (background 240)
   (let [tim (Math/sin (/ (millis) 1000))
-        x (+ (:pos-x (first node-list)) (random 500))
-        y (+ (:pos-y (first node-list)) (* tim 135))
+        x (+ (:x (:position (first node-list))) (random 500))
+        y (+ (:y (:position (first node-list))) (* tim 135))
         size 15
         atext "Node Name"
         strg tim
@@ -127,14 +147,18 @@
     (draw-node-link x y 500 500 (abs tim) (lerp-color (color 200) per-color (abs tim)))
     (draw-inter-link x y 0 0 (abs tim))
     ;;(dorun (map (draw-node-dot 50 5 node-list))
+    ;;(find-closest-node (mouse-x) (mouse-y) node-list)
+   (let [closest (find-closest-node (mouse-x) (mouse-y) node-list)]
+     (draw-node-dot (:x (:position closest)) (:y (:position closest)) (* size 1.4) (color 40 40 20));highlighting
+     )
     (dorun (map #(draw-node-link
-                  (:pos-x (:begin %)) (:pos-y (:begin %))
-                  (:pos-x (:end %)) (:pos-y (:end %))
+                  (:x (:position (:begin %))) (:y (:position (:begin %)))
+                  (:x (:position (:end %))) (:y (:position (:end %)))
                   (:strength %)
                   per-color)
                 link-list))
-    (dorun (map #(draw-node-dot (:pos-x %) (:pos-y %) size per-color) node-list))
-    (dorun (map #(draw-node-text (:pos-x %) (:pos-y %) size (:label %)) node-list))
+    (dorun (map #(draw-node-dot (:x (:position %)) (:y (:position %)) size per-color) node-list))
+    (dorun (map #(draw-node-text (:x (:position %)) (:y (:position %)) size (:label %)) node-list))
 
     ;;(random 50)
     
