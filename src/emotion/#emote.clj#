@@ -193,7 +193,7 @@
         per-color (color 213 62 79)]
     (draw-node-link x y 500 500 (abs tim) (lerp-color (color 200) per-color (abs tim)))
     (draw-inter-link x y 0 0 (abs tim))
-    (dosync (alter node-list (fn[x] map #(update-node %) x)))
+    ;;(dosync (alter node-list (fn[x] map #(update-node %) x)))
     ;;(dorun (map (draw-node-dot 50 5 node-list))
     ;;(find-closest-node (mouse-x) (mouse-y) node-list)
    (let [closest (find-closest-node (mouse-x) (mouse-y) node-list)]
