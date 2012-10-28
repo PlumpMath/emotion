@@ -20,10 +20,10 @@
     [strength, begin, end])
 
 (def node-list (ref [{:label "Hope" :position {:x 500 :y 50} :velocity {:x 0 :y 0}}
-                {:label "Fear" :position {:x 50 :y 400} :velocity {:x 0 :y 0}}
+                {:label "Fear" :position {:x 55 :y 400} :velocity {:x 3 :y 0}}
                 {:label "Vegetables" :position {:x 345 :y 234} :velocity {:x 0 :y 0}}]))
 
-(def link-list (ref [(link. 10.0 (first node-list) (second node-list))]))
+(def link-list (ref [(link. 10.0 (first @node-list) (second @node-list))]))
 
 (defn make-node [label pos vel]
   {:label label :position pos :velocity vel})
@@ -65,11 +65,13 @@
 
 (defn update-node [the-node]
   (let [gravity {:x 0 :y 0}
-        dampening {:x 0.9 :y 0.9}
+        dampening {:x 1 :y 1}
         v (op-map * (op-map + (:velocity the-node) gravity) dampening)
-        p (op-map v (:position the-node))
+        p (op-map + v (:position the-node))
         ]
-    (assoc the-node :position p :velocity v)))
+    (println p)
+    (assoc the-node :position p :velocity v)
+    ))
 
 (defn update-link [lnk list-of-nodes]
   (let [dist-vec (op-map - (:pos (:begin lnk)) (:pos (:end lnk)))
@@ -194,23 +196,24 @@
 (defn draw []
   (background 240)
   (let [tim (Math/sin (/ (millis) 1000))
-        x (+ (:x (:position (first node-list))) (random 500))
-        y (+ (:y (:position (first node-list))) (* tim 135))
+        x (+ (:x (:position (first @node-list))) (random 500))
+        y (+ (:y (:position (first @node-list))) (* tim 135))
         size 15
         atext "Node Name"
         strg tim
         per-color (color 213 62 79)]
-    (conj node-list {:label "Love" :position {:x 15 :y 450} :velocity {:x 0 :y 0}})
+
+    (dosync (alter node-list (fn[x] (map #(update-node %) x))))
+;;    (dosync (alter link-list...
+  
     (draw-node-link x y 500 500 (abs tim) (lerp-color (color 200) per-color (abs tim)))
     (draw-inter-link x y 0 0 (abs tim))
-    ;;(dosync (alter node-list (fn[x] map #(update-node %) x)))
-    ;;(dorun (map (draw-node-dot 50 5 node-list))
-    ;;(find-closest-node (mouse-x) (mouse-y) node-list)
+
    (let [closest (find-closest-node (mouse-x) (mouse-y) @node-list)]
-     (draw-node-dot (:x (:position closest)) (:y (:position closest)) (* size 1.4) (color 40 40 20));highlighting
-     )
-      ;;(dosync (alter conj node-list
-   ;;(conj node-list (make-and-add-node node-list))
+     (draw-node-dot (:x (:position closest))
+                    (:y (:position closest))
+                    (* size 1.4)
+                    (color 40 40 20)));highlighting
    (dorun (map #(draw-node-link
                   (:x (:position (:begin %))) (:y (:position (:begin %)))
                   (:x (:position (:end %)))   (:y (:position (:end %)))
@@ -219,10 +222,7 @@
                 @link-list))
    (dorun (map #(draw-node-dot (:x (:position %)) (:y (:position %)) size per-color) @node-list))
    (dorun (map #(draw-node-text (:x (:position %)) (:y (:position %)) size (:label %)) @node-list))
-
-    ;;(random 50)
     
-    (draw-node-dot x y size (lerp-color per-color (color 255) 0.0))
-    (draw-node-text x y size (str (abs tim)))
-    (draw-person-circle x y 200 per-color)
-    ))
+   (draw-node-dot x y size (lerp-color per-color (color 255) 0.0))
+   (draw-node-text x y size (str (abs tim)))
+   (draw-person-circle x y 200 per-color)))
