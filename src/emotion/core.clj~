@@ -3,11 +3,11 @@
   (:require ;[emotion.dynamic :as dynamic]
             [emotion.emote :as emote]))
 
-;(defsketch example
-;  :title "Oh so many grey circles"
-;  :setup dynamic/setup
-;  :draw dynamic/draw
-;  :size [323 200])
+;;(defsketch example
+;;  :title "Oh so many grey circles"
+;;  :setup dynamic/setup
+;;  :draw dynamic/draw
+;;  :size [323 200])
 
 (defsketch emotion
   :title "What do you want?"

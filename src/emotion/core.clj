@@ -1,7 +1,9 @@
 (ns emotion.core
   (:use quil.core)
   (:require ;[emotion.dynamic :as dynamic]
-            [emotion.emote :as emote]))
+   [emotion.emote :as emote]
+   [emotion.vec :as vec]
+   ))
 
 ;;(defsketch example
 ;;  :title "Oh so many grey circles"
