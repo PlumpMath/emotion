@@ -19,34 +19,31 @@
 (defrecord link
     [strength, begin, end])
 
-(def node-list (ref [{:label "Alice"
-                      :position {:x 400
-                                 :y 300}
-                      :velocity {:x 0 :y 0}}
-                     {:label "Bob"        :position {:x 95 :y 201} :velocity {:x 0 :y 0}}
-                     {:label "Carol"      :position {:x 60 :y 202} :velocity {:x 0 :y 0}}
-                     {:label "A: Bob"     :position {:x 70 :y 203} :velocity {:x 0 :y 0}}
-                     {:label "B: Alice"   :position {:x 80 :y 621} :velocity {:x 0 :y 0}}
-                     {:label "Dreams"     :position {:x 90 :y 222} :velocity {:x 0 :y 0}}
-                     {:label "Weather"    :position {:x 120 :y 523} :velocity {:x 0 :y 0}}
-                     {:label "Greed"      :position {:x 230 :y 204} :velocity {:x 0 :y 0}}
+(def node-list (ref [{:label "Alice"      :position {:x 200 :y 200} :velocity {:x 0 :y 0}}
+                     {:label "Bob"        :position {:x 200 :y 201} :velocity {:x 0 :y 0}}
+                     {:label "Carol"      :position {:x 200 :y 202} :velocity {:x 0 :y 0}}
+                     {:label "A: Bob"     :position {:x 200 :y 203} :velocity {:x 0 :y 0}}
+                     {:label "B: Alice"   :position {:x 200 :y 21} :velocity {:x 0 :y 0}}
+                     {:label "Dreams"     :position {:x 200 :y 22} :velocity {:x 0 :y 0}}
+                     {:label "Weather"    :position {:x 200 :y 23} :velocity {:x 0 :y 0}}
+                     {:label "Greed"      :position {:x 200 :y 204} :velocity {:x 0 :y 0}}
                      {:label "Love"      :position {:x 20 :y 200} :velocity {:x 0 :y 0}}
                      {:label "Hope"       :position {:x 500 :y 50}  :velocity {:x 8 :y 8}}
                      {:label "Fear"       :position {:x 55 :y 400}  :velocity {:x 8 :y -9}}
                      {:label "Vegetables" :position {:x 345 :y 234} :velocity {:x -3 :y 3}}]))
 
-(def link-list (ref [(link. 5.0 "Alice" "A: Bob")
-                     (link. 4.0 "Bob" "B: Alice")
-                     (link. 3.0 "Bob" "A: Bob")
-                     (link. 2.0 "Alice" "B: Alice")
-                     (link. 1.0 "Alice" "Fear")
-                     (link. 1.0 "Alice" "Dreams")
-                     (link. 1.0 "Alice" "Hope")
-                     (link. 1.0 "Alice" "Greed")
-                     (link. 1.0 "Alice" "Vegetables")
-                     (link. 1.0 "Alice" "Weather")
-                     (link. 1.0 "Bob" "Fear")
-                     (link. 1.0 "Bob" "Dreams")
+(def link-list (ref [(link. 50.0 "Alice" "A: Bob")
+                     (link. 50.0 "Bob" "B: Alice")
+                     (link. 50.0 "Bob" "A: Bob")
+                     (link. 50.0 "Alice" "B: Alice")
+                     (link. 50.0 "Alice" "Fear")
+                     (link. 50.0 "Alice" "Dreams")
+                     (link. 50.0 "Alice" "Hope")
+                     (link. 50.0 "Alice" "Greed")
+                     (link. 50.0 "Alice" "Vegetables")
+                     (link. 50.0 "Alice" "Weather")
+                     (link. 50.0 "Bob" "Fear")
+                     (link. 50.0 "Bob" "Dreams")
                      ]))
 
 (defn make-node [label pos vel]
@@ -89,7 +86,7 @@
 
 (defn update-node [the-node]
   (let [gravity {:x 0 :y 0}
-        dampening {:x 0.99 :y 0.99}
+        dampening {:x 0.95 :y 0.95}
         v (op-map * (op-map + (:velocity the-node) gravity) dampening)
         p (op-map + v (:position the-node))
         ]
@@ -139,10 +136,10 @@
     ;; This is terrible design. This is also a really quick prototype, so I don't care yet.
     (dosync (alter list-of-nodes
                    (fn[x]
-                     (nl-apply-force x e pull-vec-inverse)))
+                     (nl-apply-force x b pull-vec-inverse)))
             (alter list-of-nodes
                    (fn[x]
-                     (nl-apply-force x b pull-vec))))
+                     (nl-apply-force x e pull-vec))))
     list-of-nodes
     ))
 
@@ -263,15 +260,25 @@
         size 15
         atext "Node Name"
         strg tim
-        per-color (color 213 62 79)]
+        per-color (color 213 62 79)
+        mouse-pos {:x (mouse-x) :y (mouse-y)}
+        mouse-down (mouse-state)
+        closest (find-closest-node (mouse-x) (mouse-y) @node-list)
+        ]
 
-    ;; Add dragging
-    ;; Add repulsion
+    (if (= mouse-down true)
+      (dosync (alter node-list #(replace {closest (assoc closest :position mouse-pos)} %))))
+
+
+    ;; repulse close nodes
+    ;;(dosync
+      
+      
 
     (dosync (alter node-list (fn[x] (map #(update-node %) x))))
     ;;(dosync (alter node-list (fn[x] (reduce #(update-link % node-list) @link-list))))
     ;;(update-link (first @link-list) @node-list)
-    (dosync (map #(update-link % node-list) @link-list))
+    (dorun (map #(update-link % node-list) @link-list))
    ;; (dosync (alter node-list (fn[x] (map #(update-link % x) @link-list))))
 
 
@@ -282,11 +289,12 @@
     ;;(draw-node-link x y 500 500 (abs tim) (lerp-color (color 200) per-color (abs tim)))
    ;; (draw-inter-link x y 0 0 (abs tim))
 
-   (let [closest (find-closest-node (mouse-x) (mouse-y) @node-list)]
+   (let []
      (draw-node-dot (:x (:position closest))
                     (:y (:position closest))
                     (* size 1.4)
                     (color 40 40 20)));highlighting
+   
    (dorun (map (fn[lnk] 
                  (let [node-1 (find-node (:begin lnk) @node-list);(first (filter #(= (:begin lnk) (:label %)) @node-list))
                        node-2 (find-node (:end lnk) @node-list)];(first (filter #(= (:end lnk) (:label %)) @node-list))]
