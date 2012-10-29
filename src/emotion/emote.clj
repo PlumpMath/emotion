@@ -1,10 +1,10 @@
 (ns emotion.emote
   (:use quil.core
         [quil.helpers.drawing :only [line-join-points]]
-        [quil.helpers.seqs :only [range-incl]]))
+        [quil.helpers.seqs :only [range-incl]]
+        ))
 
 ;;; Nodes
-
 ;; node id
 ;; person it belongs to
 ;; current position
@@ -19,11 +19,32 @@
 (defrecord link
     [strength, begin, end])
 
-(def node-list (ref [{:label "Hope" :position {:x 500 :y 50} :velocity {:x 0 :y 0}}
-                {:label "Fear" :position {:x 55 :y 400} :velocity {:x 3 :y 0}}
-                {:label "Vegetables" :position {:x 345 :y 234} :velocity {:x 0 :y 0}}]))
+(def node-list (ref [{:label "Alice"      :position {:x 200 :y 200} :velocity {:x 0 :y 0}}
+                     {:label "Bob"        :position {:x 200 :y 201} :velocity {:x 0 :y 0}}
+                     {:label "Carol"      :position {:x 200 :y 202} :velocity {:x 0 :y 0}}
+                     {:label "A: Bob"     :position {:x 200 :y 203} :velocity {:x 0 :y 0}}
+                     {:label "B: Alice"   :position {:x 200 :y 21} :velocity {:x 0 :y 0}}
+                     {:label "Dreams"     :position {:x 200 :y 22} :velocity {:x 0 :y 0}}
+                     {:label "Weather"    :position {:x 200 :y 23} :velocity {:x 0 :y 0}}
+                     {:label "Greed"      :position {:x 200 :y 204} :velocity {:x 0 :y 0}}
+                     {:label "Love"      :position {:x 20 :y 200} :velocity {:x 0 :y 0}}
+                     {:label "Hope"       :position {:x 500 :y 50}  :velocity {:x 8 :y 8}}
+                     {:label "Fear"       :position {:x 55 :y 400}  :velocity {:x 8 :y -9}}
+                     {:label "Vegetables" :position {:x 345 :y 234} :velocity {:x -3 :y 3}}]))
 
-(def link-list (ref [(link. 10.0 (first @node-list) (second @node-list))]))
+(def link-list (ref [(link. 10.0 "Alice" "A: Bob")
+                     (link. 10.0 "Bob" "B: Alice")
+                     (link. 10.0 "Bob" "A: Bob")
+                     (link. 10.0 "Alice" "B: Alice")
+                     (link. 10.0 "Alice" "Fear")
+                     (link. 10.0 "Alice" "Dreams")
+                     (link. 10.0 "Alice" "Hope")
+                     (link. 10.0 "Alice" "Greed")
+                     (link. 10.0 "Alice" "Vegetables")
+                     (link. 10.0 "Alice" "Weather")
+                     (link. 10.0 "Bob" "Fear")
+                     (link. 10.0 "Bob" "Dreams")
+                     ]))
 
 (defn make-node [label pos vel]
   {:label label :position pos :velocity vel})
@@ -39,7 +60,7 @@
   ([op & vecs]
      (apply merge-with op vecs)))
 
-(defn de-vec ""
+(defn de-vec "Convert {:x :y} map to flat list."
  ([vec]
     (list (:x vec) (:y vec))
     ))
@@ -65,27 +86,62 @@
 
 (defn update-node [the-node]
   (let [gravity {:x 0 :y 0}
-        dampening {:x 1 :y 1}
+        dampening {:x 0.95 :y 0.95}
         v (op-map * (op-map + (:velocity the-node) gravity) dampening)
         p (op-map + v (:position the-node))
         ]
-    (println p)
+;;    (println p)
     (assoc the-node :position p :velocity v)
     ))
 
-(defn update-link [lnk list-of-nodes]
-  (let [dist-vec (op-map - (:pos (:begin lnk)) (:pos (:end lnk)))
-        distance (op-vec dist (:pos (:begin lnk)) (:pos (:end lnk)))
-        spring-constant 0.02
-        pull     (* (- distance (:strength lnk)) spring-constant)]
-    ;; (find the node in the list of nodes)
-    (vec (map #(if (= (:label %) (:label (:begin lnk)))
-                 (assoc % :position (op-map + {:x 1 :y 0} (:position %)))
-                 %)))
-    ))
+(defn find-node
+  "Find node by name in list-of-nodes. If there are duplicate names, it returns the first one...I'd prefer to do it by pointer or id, but that comes later."
+  ([name list-of-nodes]
+      (first (filter #(= name (:label %)) @node-list))))
 
-;;(defn node-apply-force [the-node force-vec]
-;;  )
+(defn node-apply-force [the-node force-vec]
+  (let [nv (op-map + (:velocity the-node) force-vec)]
+    (assoc the-node :velocity nv)))
+
+(defn nl-apply-force [nlist the-node force]
+    (map #(if (= (:label %) (:label the-node))
+                 (node-apply-force % force)
+                 %)
+              nlist))
+
+(defn normalize-vec [vv]
+  (let [v (emotion.vec/normalise [(:x vv) (:y vv)])]
+    {:x (first v) :y (second v)}))
+
+(defn update-link [lnk list-of-nodes]
+  (let [b (find-node (:begin lnk) list-of-nodes)
+        e (find-node (:end lnk) list-of-nodes)
+        dist-vec (op-map - (:position b) (:position e))
+        distance (vec-dist (:position b) (:position e))
+        spring-constant 0.02
+        pull (* (- distance (:strength lnk)) spring-constant)
+        dist-vec-norm (normalize-vec dist-vec)
+        pull-vec (op-map * {:x pull :y pull} dist-vec-norm)
+        pull-vec-inverse (op-map * {:x -1 :y -1} pull-vec)
+        ]
+
+;;    (dosync (alter list-of-nodes
+;;                   (fn[x]
+;;                     (conj
+;;                      x
+;;                      {:label "Test" :position {:x 50 :y 50} :velocity {:x 3 :y 1}}))))
+
+    ;;(println dist-vec-norm)
+
+    ;; This is terrible design. This is also a really quick prototype, so I don't care yet.
+    (dosync (alter list-of-nodes
+                   (fn[x]
+                     (nl-apply-force x b pull-vec-inverse)))
+            (alter list-of-nodes
+                   (fn[x]
+                     (nl-apply-force x e pull-vec))))
+    list-of-nodes
+    ))
 
 ;;; interface
 (defn find-closest-node
@@ -152,14 +208,17 @@
 (defn draw-node-link
   "Draw link line between two nodes"
   ([x1 y1 x2 y2]
+    ;; (println x1 y1 x2 y2)
      (stroke-weight 3)
      (stroke 100)
      (line x1 y1 x2 y2))
   ([x1 y1 x2 y2 strength]
+     ;;(println x1 y1 x2 y2 strength)
      (stroke-weight (+ 5 (* strength 2)))
      (stroke (- 180 (* strength 80)))
      (line x1 y1 x2 y2))
   ([x1 y1 x2 y2 strength per-color]
+     ;;(println x1 y1 x2 y2 strength per-color)
      (stroke-weight (+ 5 (* strength 2)))
      (stroke (lerp-color per-color (color 20 20 20) (abs strength)))
      (line x1 y1 x2 y2))
@@ -204,25 +263,40 @@
         per-color (color 213 62 79)]
 
     (dosync (alter node-list (fn[x] (map #(update-node %) x))))
-;;    (dosync (alter link-list...
+    ;;(dosync (alter node-list (fn[x] (reduce #(update-link % node-list) @link-list))))
+    ;;(update-link (first @link-list) @node-list)
+    (dorun (map #(update-link % node-list) @link-list))
+   ;; (dosync (alter node-list (fn[x] (map #(update-link % x) @link-list))))
+
+
+    ;;    (dosync (alter node-list (fn[x] (map #(update-link link-list %) x))))
+    ;;(dosync (alter link-list (fn[x2] (map #(update-link % node-list) x2))))
+    ;(dosync (alter link-list (fn[x] (map #(update-link % node-list) x))))
   
-    (draw-node-link x y 500 500 (abs tim) (lerp-color (color 200) per-color (abs tim)))
-    (draw-inter-link x y 0 0 (abs tim))
+    ;;(draw-node-link x y 500 500 (abs tim) (lerp-color (color 200) per-color (abs tim)))
+   ;; (draw-inter-link x y 0 0 (abs tim))
 
    (let [closest (find-closest-node (mouse-x) (mouse-y) @node-list)]
      (draw-node-dot (:x (:position closest))
                     (:y (:position closest))
                     (* size 1.4)
                     (color 40 40 20)));highlighting
-   (dorun (map #(draw-node-link
-                  (:x (:position (:begin %))) (:y (:position (:begin %)))
-                  (:x (:position (:end %)))   (:y (:position (:end %)))
-                  (* (:strength %) 0.01)
-                  per-color)
-                @link-list))
+   (dorun (map (fn[lnk] 
+                 (let [node-1 (find-node (:begin lnk) @node-list);(first (filter #(= (:begin lnk) (:label %)) @node-list))
+                       node-2 (find-node (:end lnk) @node-list)];(first (filter #(= (:end lnk) (:label %)) @node-list))]
+                   ;;(println node-2)
+                   ;;(println (:position node-2))
+                   (draw-node-link
+                   (:x (:position node-1)) (:y (:position node-1))
+                   (:x (:position node-2)) (:y (:position node-2))
+                   (* (:strength lnk) 0.01)
+                   per-color
+                   )))
+                 @link-list))
    (dorun (map #(draw-node-dot (:x (:position %)) (:y (:position %)) size per-color) @node-list))
    (dorun (map #(draw-node-text (:x (:position %)) (:y (:position %)) size (:label %)) @node-list))
     
-   (draw-node-dot x y size (lerp-color per-color (color 255) 0.0))
-   (draw-node-text x y size (str (abs tim)))
-   (draw-person-circle x y 200 per-color)))
+   ;;(draw-node-dot x y size (lerp-color per-color (color 255) 0.0))
+   ;;(draw-node-text x y size (str (abs tim)))
+   ;;(draw-person-circle x y 200 per-color)))
+   ))
